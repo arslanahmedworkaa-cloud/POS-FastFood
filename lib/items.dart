@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'add_category.dart';
-import 'delete_category.dart';
-import 'edit_category.dart';
-import 'list_categories.dart';
+import 'add_item.dart';
+import 'delete_item.dart';
+import 'edit_item.dart';
+import 'list_items.dart';
 
-class CategoriesScreen extends StatelessWidget {
-  const CategoriesScreen({super.key});
+class ItemsScreen extends StatelessWidget {
+  const ItemsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Category Management'),
+        title: const Text('Item Management'),
         backgroundColor: Colors.orangeAccent,
       ),
       body: Padding(
@@ -21,7 +21,7 @@ class CategoriesScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.add_circle),
               title: const Text(
-                'Add Category',
+                'Add Item',
                 style: TextStyle(fontSize: 18),
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -29,7 +29,7 @@ class CategoriesScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const AddCategoryScreen(),
+                    builder: (context) => const AddItemScreen(),
                   ),
                 );
               },
@@ -38,7 +38,7 @@ class CategoriesScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.delete),
               title: const Text(
-                'Delete Category',
+                'Delete Item',
                 style: TextStyle(fontSize: 18),
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -46,7 +46,7 @@ class CategoriesScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const DeleteCategoryScreen(),
+                    builder: (context) => const DeleteItemScreen(),
                   ),
                 );
               },
@@ -55,7 +55,7 @@ class CategoriesScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.edit),
               title: const Text(
-                'Edit Category',
+                'Edit Item',
                 style: TextStyle(fontSize: 18),
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -63,7 +63,7 @@ class CategoriesScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const EditCategoryScreen(),
+                    builder: (context) => const EditItemScreen(),
                   ),
                 );
               },
@@ -72,7 +72,7 @@ class CategoriesScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.list),
               title: const Text(
-                'List Categories',
+                'List Items',
                 style: TextStyle(fontSize: 18),
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -80,7 +80,7 @@ class CategoriesScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ListCategoriesScreen(),
+                    builder: (context) => const ListItemsScreen(),
                   ),
                 );
               },

@@ -221,6 +221,7 @@ class DeleteCategoryScreen extends StatelessWidget {
           );
         },
       ),
+      backgroundColor: Color(0xffc6d1d7),
     );
   }
 }

@@ -265,6 +265,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
           ],
         ),
       ),
+      backgroundColor: Color(0xffc6d1d7),
     );
   }
 }

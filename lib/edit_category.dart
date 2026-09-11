@@ -424,6 +424,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
           ],
         ),
       ),
+      backgroundColor: Color(0xffc6d1d7),
     );
   }
 }

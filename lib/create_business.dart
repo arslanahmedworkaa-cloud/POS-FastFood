@@ -375,6 +375,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
           ],
         ),
       ),
+      backgroundColor: Color(0xffc6d1d7),
     );
   }
 }
