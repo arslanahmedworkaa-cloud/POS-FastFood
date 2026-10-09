@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -9,8 +10,10 @@ import 'package:image_picker/image_picker.dart';
 class EditCategoryScreen extends StatelessWidget {
   const EditCategoryScreen({super.key});
 
+  // Gets the currently logged-in Firebase user.
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
+  // Opens the categories collection belonging to the current user.
   CollectionReference get categoriesCollection {
     return FirebaseFirestore.instance
         .collection('users')
@@ -20,6 +23,7 @@ class EditCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Prevents category data from being accessed when no user is logged in.
     if (currentUser == null) {
       return const Scaffold(
         body: Center(
@@ -33,6 +37,7 @@ class EditCategoryScreen extends StatelessWidget {
         title: const Text('Edit Category'),
         backgroundColor: Colors.orangeAccent,
       ),
+      // Listens for category changes in Firestore and updates the screen automatically.
       body: StreamBuilder<QuerySnapshot>(
         stream: categoriesCollection.snapshots(),
         builder: (context, snapshot) {
@@ -48,6 +53,7 @@ class EditCategoryScreen extends StatelessWidget {
             );
           }
 
+          // Keeps only documents that contain all required category fields.
           final categories = snapshot.data?.docs.where((category) {
                 final data = category.data() as Map<String, dynamic>;
 
@@ -142,6 +148,7 @@ class EditCategoryScreen extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.all(8),
                         child: categoryImage.isNotEmpty
+                            // Converts the saved Base64 string back into image bytes.
                             ? Image.memory(
                                 base64Decode(categoryImage),
                                 height: 60,
@@ -154,6 +161,7 @@ class EditCategoryScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(8),
                         child: ElevatedButton(
                           onPressed: () {
+                            // Opens the edit form and passes the selected category's current data.
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -181,6 +189,7 @@ class EditCategoryScreen extends StatelessWidget {
 }
 
 class EditCategoryForm extends StatefulWidget {
+  // These values are passed from the selected category in the previous screen.
   final String categoryId;
   final String categoryName;
   final String categoryImage;
@@ -200,6 +209,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
   late TextEditingController idController;
   late TextEditingController nameController;
 
+  // Holds the newly selected image as bytes until the category is updated.
   Uint8List? selectedImage;
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
@@ -208,6 +218,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
   void initState() {
     super.initState();
 
+    // Fills the form with the selected category's existing values.
     idController = TextEditingController(
       text: widget.categoryId,
     );
@@ -220,6 +231,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
   Future<void> selectImage() async {
     final ImagePicker picker = ImagePicker();
 
+    // Opens the gallery and limits the selected image's size and quality.
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 600,
@@ -227,12 +239,14 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
       imageQuality: 50,
     );
 
+    // Stops if the user closes the gallery without selecting an image.
     if (image == null) {
       return;
     }
 
     final bytes = await image.readAsBytes();
 
+    // Saves the selected image so its preview can update on the screen.
     setState(() {
       selectedImage = bytes;
     });
@@ -241,6 +255,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
   Future<void> updateCategory() async {
     String categoryName = nameController.text.trim();
 
+    // Category name is required before saving changes.
     if (categoryName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -255,12 +270,14 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
     }
 
     try {
+      // Keeps the old image unless the user selects a replacement.
       String imageToSave = widget.categoryImage;
 
       if (selectedImage != null) {
         imageToSave = base64Encode(selectedImage!);
       }
 
+      // Updates the existing category document without changing its ID.
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser!.uid)
@@ -272,6 +289,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
+      // Checks that this screen still exists before using its context.
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -280,6 +298,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
         ),
       );
 
+      // Returns to the previous screen after a successful update.
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
@@ -294,6 +313,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
 
   @override
   void dispose() {
+    // Releases the controllers when this screen is removed.
     idController.dispose();
     nameController.dispose();
     super.dispose();
@@ -379,6 +399,7 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
                       padding: const EdgeInsets.all(8),
                       child: Column(
                         children: [
+                          // Shows the newly selected image first, otherwise the saved image.
                           if (selectedImage != null)
                             Image.memory(
                               selectedImage!,

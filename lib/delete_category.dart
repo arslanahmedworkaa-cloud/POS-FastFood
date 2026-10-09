@@ -7,8 +7,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 class DeleteCategoryScreen extends StatelessWidget {
   const DeleteCategoryScreen({super.key});
 
+  // Gets the currently logged-in Firebase user.
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
+  // Opens the categories collection belonging to the current user.
   CollectionReference get categoriesCollection {
     return FirebaseFirestore.instance
         .collection('users')
@@ -31,17 +33,21 @@ class DeleteCategoryScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
+                // Closes the dialog without deleting the category.
                 Navigator.pop(context);
               },
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
+                // Closes the confirmation dialog before deleting the document.
                 Navigator.pop(context);
 
                 try {
+                  // Deletes the selected category document from Firestore.
                   await categoriesCollection.doc(categoryId).delete();
 
+                  // Stops if the context is no longer available.
                   if (!context.mounted) return;
 
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -71,6 +77,7 @@ class DeleteCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Prevents category data from being accessed when no user is logged in.
     if (currentUser == null) {
       return const Scaffold(
         body: Center(
@@ -84,6 +91,7 @@ class DeleteCategoryScreen extends StatelessWidget {
         title: const Text('Delete Category'),
         backgroundColor: Colors.orangeAccent,
       ),
+      // Listens for category changes in Firestore and updates the screen automatically.
       body: StreamBuilder<QuerySnapshot>(
         stream: categoriesCollection.snapshots(),
         builder: (context, snapshot) {
@@ -99,6 +107,7 @@ class DeleteCategoryScreen extends StatelessWidget {
             );
           }
 
+          // Keeps only documents that contain all required category fields.
           final categories = snapshot.data?.docs.where((category) {
                 final data = category.data() as Map<String, dynamic>;
 
@@ -193,6 +202,7 @@ class DeleteCategoryScreen extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.all(8),
                         child: categoryImage.isNotEmpty
+                            // Converts the saved Base64 string back into image bytes.
                             ? Image.memory(
                                 base64Decode(categoryImage),
                                 height: 60,
@@ -205,6 +215,7 @@ class DeleteCategoryScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(8),
                         child: ElevatedButton(
                           onPressed: () {
+                            // Opens the confirmation dialog for this category.
                             showDeleteDialog(
                               context,
                               categoryId,

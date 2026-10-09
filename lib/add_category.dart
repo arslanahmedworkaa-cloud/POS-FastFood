@@ -17,10 +17,15 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
   final idController = TextEditingController();
   final nameController = TextEditingController();
 
+  // Stores the selected image as bytes in memory until the category is saved.
   Uint8List? selectedImage;
 
+  // Gets the currently logged-in Firebase user.
+  // Returns null if no user is logged in.
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
+  // Provides access to the current user's own categories collection in Firestore.
+  // Each user's categories are stored separately using their UID.
   CollectionReference get categoriesCollection {
     return FirebaseFirestore.instance
         .collection('users')
@@ -31,6 +36,8 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
   Future<void> selectImage() async {
     final ImagePicker picker = ImagePicker();
 
+    // Opens the device gallery and lets the user select an image.
+    // Limits the image dimensions and quality to reduce its size.
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 600,
@@ -38,21 +45,27 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
       imageQuality: 50,
     );
 
+    // Stops if the user cancels image selection.
     if (image == null) {
       return;
     }
 
+    // Reads the selected image as bytes so it can be displayed and saved.
     final bytes = await image.readAsBytes();
 
+    // Updates the selected image and rebuilds the screen to show its preview.
     setState(() {
       selectedImage = bytes;
     });
   }
 
+  // Validates the category details and saves the category in Firestore.
   Future<void> saveCategory() async {
+    // Reads the entered values and removes spaces from their beginning and end.
     String categoryId = idController.text.trim();
     String categoryName = nameController.text.trim();
 
+    // Requires a category ID before continuing.
     if (categoryId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -62,6 +75,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
       return;
     }
 
+    // Requires a category name before continuing.
     if (categoryName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -71,6 +85,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
       return;
     }
 
+    // Requires an image before saving the category.
     if (selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -80,14 +95,19 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
       return;
     }
 
+    // Stops the operation if there is no logged-in user.
     if (currentUser == null) {
       return;
     }
 
     try {
+      // Checks whether a category with this ID already exists.
+      // The category ID is also used as the Firestore document ID.
       final existingCategory = await categoriesCollection.doc(categoryId).get();
 
+      // Prevents saving another category with the same ID.
       if (existingCategory.exists) {
+        // Checks that the screen is still active before using its context.
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -99,8 +119,12 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
         return;
       }
 
+      // Converts the selected image bytes into a Base64 string.
+      // This allows the image data to be stored directly in a Firestore document.
       String imageBase64 = base64Encode(selectedImage!);
 
+      // Saves the category details and image in the current user's categories collection.
+      // FieldValue.serverTimestamp() records the time according to the server.
       await categoriesCollection.doc(categoryId).set({
         'categoryId': categoryId,
         'categoryName': categoryName,
@@ -108,23 +132,29 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
+      // Prevents using the screen's context if the screen was closed during saving.
       if (!mounted) return;
 
+      // Confirms that the category has been saved successfully.
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Category saved successfully'),
         ),
       );
 
+      // Clears the input fields after a successful save.
       idController.clear();
       nameController.clear();
 
+      // Removes the selected image preview and updates the screen.
       setState(() {
         selectedImage = null;
       });
     } catch (e) {
+      // Checks whether the screen is still active before showing an error.
       if (!mounted) return;
 
+      // Displays an error if checking or saving the category fails.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
@@ -135,6 +165,8 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
 
   @override
   void dispose() {
+    // Releases the text controllers when this screen is removed.
+    // This helps prevent unnecessary resource usage.
     idController.dispose();
     nameController.dispose();
     super.dispose();
@@ -142,6 +174,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Prevents showing the category form when no user is logged in.
     if (currentUser == null) {
       return const Scaffold(
         body: Center(
@@ -229,6 +262,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                       padding: const EdgeInsets.all(8),
                       child: Column(
                         children: [
+                          // Shows the selected image, or a placeholder if none is selected.
                           if (selectedImage != null)
                             Image.memory(
                               selectedImage!,
@@ -244,6 +278,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
                             ),
                           const SizedBox(height: 10),
                           ElevatedButton(
+                            // Opens the gallery selection process.
                             onPressed: selectImage,
                             child: const Text('Select Image'),
                           ),
@@ -258,6 +293,7 @@ class _AddCategoryScreenState extends State<AddCategoryScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+                // Validates the entered details and saves the category.
                 onPressed: saveCategory,
                 child: const Text('Save'),
               ),

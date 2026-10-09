@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'receipt_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -11,19 +12,27 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final ScrollController verticalController = ScrollController();
+
   final ScrollController horizontalController = ScrollController();
+
+  final TextEditingController customerNameController =
+      TextEditingController(text: 'Dear Customer');
 
   String getCurrentDate() {
     final DateTime now = DateTime.now();
 
     final String day = now.day.toString().padLeft(2, '0');
+
     final String month = now.month.toString().padLeft(2, '0');
+
     final String year = now.year.toString();
 
     return '$day-$month-$year';
   }
 
-  Future<String> getCategoryName(String categoryId) async {
+  Future<String> getCategoryName(
+    String categoryId,
+  ) async {
     final User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null || categoryId.isEmpty) {
@@ -59,37 +68,45 @@ class _CartScreenState extends State<CartScreen> {
       return 1;
     }
 
-    final result = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('settings')
-        .doc('orderNumber')
-        .get();
+    try {
+      final result = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('settings')
+          .doc('orderNumber')
+          .get();
 
-    if (!result.exists) {
+      if (!result.exists) {
+        return 1;
+      }
+
+      final data = result.data();
+
+      if (data == null) {
+        return 1;
+      }
+
+      final int lastOrderNumber = int.tryParse(
+            data['lastOrderNumber']?.toString() ?? '0',
+          ) ??
+          0;
+
+      return lastOrderNumber + 1;
+    } catch (e) {
       return 1;
     }
-
-    final data = result.data();
-
-    if (data == null) {
-      return 1;
-    }
-
-    final int lastOrderNumber =
-        int.tryParse(data['lastOrderNumber']?.toString() ?? '1') ?? 1;
-
-    return lastOrderNumber + 1;
   }
 
-  Future<void> deleteItem(String itemId) async {
+  Future<void> deleteItem(
+    String documentId,
+  ) async {
     final User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       return;
     }
 
-    final confirm = await showDialog<bool>(
+    final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -100,13 +117,19 @@ class _CartScreenState extends State<CartScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context, false);
+                Navigator.pop(
+                  context,
+                  false,
+                );
               },
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context, true);
+                Navigator.pop(
+                  context,
+                  true,
+                );
               },
               child: const Text('Remove'),
             ),
@@ -124,14 +147,16 @@ class _CartScreenState extends State<CartScreen> {
           .collection('users')
           .doc(user.uid)
           .collection('cart')
-          .doc(itemId)
+          .doc(documentId)
           .delete();
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Item removed from bill'),
+          content: Text(
+            'Item removed from bill',
+          ),
           duration: Duration(seconds: 1),
         ),
       );
@@ -146,17 +171,10 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  double calculateTotal(Map<String, dynamic> data) {
-    final double price = double.tryParse(data['price']?.toString() ?? '0') ?? 0;
-
-    final int quantity = int.tryParse(data['quantity']?.toString() ?? '0') ?? 0;
-
-    return price * quantity;
-  }
-
-  Future<void> confirmOrder(
-    List<QueryDocumentSnapshot> cartItems,
-    double grandTotal,
+  Future<void> changeQuantity(
+    String documentId,
+    int currentQuantity,
+    int change,
   ) async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -164,6 +182,53 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
+    final int newQuantity = currentQuantity + change;
+
+    try {
+      if (newQuantity <= 0) {
+        await deleteItem(documentId);
+        return;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('cart')
+          .doc(documentId)
+          .update({
+        'quantity': newQuantity,
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+        ),
+      );
+    }
+  }
+
+  double calculateTotal(
+    Map<String, dynamic> data,
+  ) {
+    final double price = double.tryParse(
+          data['price']?.toString() ?? '0',
+        ) ??
+        0;
+
+    final int quantity = int.tryParse(
+          data['quantity']?.toString() ?? '0',
+        ) ??
+        0;
+
+    return price * quantity;
+  }
+
+  Future<void> previewOrder(
+    List<QueryDocumentSnapshot> cartItems,
+    double grandTotal,
+  ) async {
     if (cartItems.isEmpty) {
       return;
     }
@@ -171,60 +236,47 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final int orderNumber = await getNextOrderNumber();
 
-      final orderReference = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('orders')
-          .doc(orderNumber.toString());
-
       final List<Map<String, dynamic>> orderItems = [];
 
       for (final doc in cartItems) {
         final data = doc.data() as Map<String, dynamic>;
 
+        final String categoryId = data['categoryId']?.toString() ?? '';
+
+        final String categoryName = await getCategoryName(categoryId);
+
         orderItems.add({
           'itemId': data['itemId']?.toString() ?? '',
           'itemName': data['itemName']?.toString() ?? '',
-          'categoryId': data['categoryId']?.toString() ?? '',
+          'categoryId': categoryId,
+          'categoryName': categoryName,
           'size': data['size']?.toString() ?? '',
           'price': data['price']?.toString() ?? '',
-          'quantity': data['quantity'] ?? 0,
+          'quantity': int.tryParse(
+                data['quantity']?.toString() ?? '0',
+              ) ??
+              0,
           'total': calculateTotal(data),
         });
       }
 
-      await orderReference.set({
-        'orderNo': orderNumber,
-        'date': getCurrentDate(),
-        'items': orderItems,
-        'grandTotal': grandTotal,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      String customerName = customerNameController.text.trim();
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('settings')
-          .doc('orderNumber')
-          .set({
-        'lastOrderNumber': orderNumber,
-      });
-
-      for (final doc in cartItems) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('cart')
-            .doc(doc.id)
-            .delete();
+      if (customerName.isEmpty) {
+        customerName = 'Dear Customer';
       }
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Order No. $orderNumber confirmed successfully',
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReceiptScreen(
+            orderNumber: orderNumber,
+            date: getCurrentDate(),
+            customerName: customerName,
+            orderItems: orderItems,
+            grandTotal: grandTotal,
           ),
         ),
       );
@@ -233,7 +285,9 @@ class _CartScreenState extends State<CartScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error confirming order: $e'),
+          content: Text(
+            'Error preparing receipt: $e',
+          ),
         ),
       );
     }
@@ -243,6 +297,7 @@ class _CartScreenState extends State<CartScreen> {
   void dispose() {
     verticalController.dispose();
     horizontalController.dispose();
+    customerNameController.dispose();
     super.dispose();
   }
 
@@ -253,7 +308,9 @@ class _CartScreenState extends State<CartScreen> {
     if (user == null) {
       return const Scaffold(
         body: Center(
-          child: Text('User is not logged in'),
+          child: Text(
+            'User is not logged in',
+          ),
         ),
       );
     }
@@ -269,7 +326,10 @@ class _CartScreenState extends State<CartScreen> {
             .doc(user.uid)
             .collection('cart')
             .snapshots(),
-        builder: (context, snapshot) {
+        builder: (
+          context,
+          snapshot,
+        ) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
@@ -278,11 +338,14 @@ class _CartScreenState extends State<CartScreen> {
 
           if (snapshot.hasError) {
             return Center(
-              child: Text('Error: ${snapshot.error}'),
+              child: Text(
+                'Error: ${snapshot.error}',
+              ),
             );
           }
 
-          final cartItems = snapshot.data?.docs ?? [];
+          final List<QueryDocumentSnapshot> cartItems =
+              snapshot.data?.docs ?? [];
 
           if (cartItems.isEmpty) {
             return const Center(
@@ -315,13 +378,18 @@ class _CartScreenState extends State<CartScreen> {
 
             grandTotal += calculateTotal(data);
 
-            totalQuantity +=
-                int.tryParse(data['quantity']?.toString() ?? '0') ?? 0;
+            totalQuantity += int.tryParse(
+                  data['quantity']?.toString() ?? '0',
+                ) ??
+                0;
           }
 
           return FutureBuilder<int>(
             future: getNextOrderNumber(),
-            builder: (context, orderSnapshot) {
+            builder: (
+              context,
+              orderSnapshot,
+            ) {
               final int orderNumber = orderSnapshot.data ?? 1;
 
               return Padding(
@@ -331,7 +399,9 @@ class _CartScreenState extends State<CartScreen> {
                     Card(
                       elevation: 3,
                       child: Padding(
-                        padding: const EdgeInsets.all(15),
+                        padding: const EdgeInsets.all(
+                          15,
+                        ),
                         child: Column(
                           children: [
                             const Text(
@@ -341,7 +411,9 @@ class _CartScreenState extends State<CartScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(
+                              height: 12,
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -351,10 +423,14 @@ class _CartScreenState extends State<CartScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                Text(getCurrentDate()),
+                                Text(
+                                  getCurrentDate(),
+                                ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(
+                              height: 8,
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -372,6 +448,26 @@ class _CartScreenState extends State<CartScreen> {
                                 ),
                               ],
                             ),
+                            const SizedBox(
+                              height: 12,
+                            ),
+
+                            // Customer Name
+                            TextField(
+                              controller: customerNameController,
+                              decoration: InputDecoration(
+                                labelText: 'Customer Name',
+                                hintText: 'Dear Customer',
+                                prefixIcon: const Icon(
+                                  Icons.person,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    8,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -379,7 +475,10 @@ class _CartScreenState extends State<CartScreen> {
                     const SizedBox(height: 10),
                     Expanded(
                       child: LayoutBuilder(
-                        builder: (context, constraints) {
+                        builder: (
+                          context,
+                          constraints,
+                        ) {
                           return SizedBox(
                             height: constraints.maxHeight,
                             width: constraints.maxWidth,
@@ -476,90 +575,142 @@ class _CartScreenState extends State<CartScreen> {
                                             ),
                                           ),
                                         ],
-                                        rows: cartItems.map((doc) {
-                                          final data = doc.data()
-                                              as Map<String, dynamic>;
+                                        rows: cartItems.map(
+                                          (doc) {
+                                            final data = doc.data()
+                                                as Map<String, dynamic>;
 
-                                          final String itemId =
-                                              data['itemId']?.toString() ?? '';
+                                            final String itemId =
+                                                data['itemId']?.toString() ??
+                                                    '';
 
-                                          final String itemName =
-                                              data['itemName']?.toString() ??
-                                                  '';
+                                            final String itemName =
+                                                data['itemName']?.toString() ??
+                                                    '';
 
-                                          final String categoryId =
-                                              data['categoryId']?.toString() ??
-                                                  '';
+                                            final String categoryId =
+                                                data['categoryId']
+                                                        ?.toString() ??
+                                                    '';
 
-                                          final String size =
-                                              data['size']?.toString() ?? '';
+                                            final String size =
+                                                data['size']?.toString() ?? '';
 
-                                          final String price =
-                                              data['price']?.toString() ?? '';
+                                            final String price =
+                                                data['price']?.toString() ?? '';
 
-                                          final int quantity = int.tryParse(
-                                                data['quantity']?.toString() ??
-                                                    '0',
-                                              ) ??
-                                              0;
+                                            final int quantity = int.tryParse(
+                                                  data['quantity']
+                                                          ?.toString() ??
+                                                      '0',
+                                                ) ??
+                                                0;
 
-                                          final double total =
-                                              calculateTotal(data);
+                                            final double total = calculateTotal(
+                                              data,
+                                            );
 
-                                          return DataRow(
-                                            cells: [
-                                              DataCell(
-                                                Text(itemId),
-                                              ),
-                                              DataCell(
-                                                FutureBuilder<String>(
-                                                  future: getCategoryName(
-                                                    categoryId,
+                                            return DataRow(
+                                              cells: [
+                                                DataCell(
+                                                  Text(
+                                                    itemId,
                                                   ),
-                                                  builder: (
-                                                    context,
-                                                    categorySnapshot,
-                                                  ) {
-                                                    return Text(
-                                                      categorySnapshot.data ??
-                                                          categoryId,
-                                                    );
-                                                  },
                                                 ),
-                                              ),
-                                              DataCell(
-                                                Text(itemName),
-                                              ),
-                                              DataCell(
-                                                Text(
-                                                  size.isEmpty ? 'N/A' : size,
-                                                ),
-                                              ),
-                                              DataCell(
-                                                Text('Rs. $price'),
-                                              ),
-                                              DataCell(
-                                                Text(quantity.toString()),
-                                              ),
-                                              DataCell(
-                                                Text(
-                                                  'Rs. ${total.toStringAsFixed(0)}',
-                                                ),
-                                              ),
-                                              DataCell(
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.delete_outline,
-                                                    color: Colors.red,
+                                                DataCell(
+                                                  FutureBuilder<String>(
+                                                    future: getCategoryName(
+                                                      categoryId,
+                                                    ),
+                                                    builder: (
+                                                      context,
+                                                      categorySnapshot,
+                                                    ) {
+                                                      return Text(
+                                                        categorySnapshot.data ??
+                                                            categoryId,
+                                                      );
+                                                    },
                                                   ),
-                                                  onPressed: () {
-                                                    deleteItem(itemId);
-                                                  },
                                                 ),
-                                              ),
-                                            ],
-                                          );
-                                        }).toList(),
+                                                DataCell(
+                                                  Text(
+                                                    itemName,
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    size.isEmpty ? 'N/A' : size,
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    'Rs. $price',
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                          Icons.remove,
+                                                          size: 18,
+                                                        ),
+                                                        onPressed: () {
+                                                          changeQuantity(
+                                                            doc.id,
+                                                            quantity,
+                                                            -1,
+                                                          );
+                                                        },
+                                                      ),
+                                                      Text(
+                                                        quantity.toString(),
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                          Icons.add,
+                                                          size: 18,
+                                                        ),
+                                                        onPressed: () {
+                                                          changeQuantity(
+                                                            doc.id,
+                                                            quantity,
+                                                            1,
+                                                          );
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Text(
+                                                    'Rs. ${total.toStringAsFixed(0)}',
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                      Icons.delete_outline,
+                                                      color: Colors.red,
+                                                    ),
+                                                    onPressed: () {
+                                                      deleteItem(
+                                                        doc.id,
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        ).toList(),
                                       ),
                                     ),
                                   ),
@@ -574,7 +725,9 @@ class _CartScreenState extends State<CartScreen> {
                     Card(
                       elevation: 3,
                       child: Padding(
-                        padding: const EdgeInsets.all(15),
+                        padding: const EdgeInsets.all(
+                          15,
+                        ),
                         child: Column(
                           children: [
                             Row(
@@ -624,16 +777,16 @@ class _CartScreenState extends State<CartScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          confirmOrder(
+                          previewOrder(
                             cartItems,
                             grandTotal,
                           );
                         },
                         icon: const Icon(
-                          Icons.check_circle_outline,
+                          Icons.receipt_long,
                         ),
                         label: const Text(
-                          'Confirm Order',
+                          'View Receipt',
                           style: TextStyle(
                             fontSize: 17,
                           ),

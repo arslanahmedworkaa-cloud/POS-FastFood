@@ -18,6 +18,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
   final businessNameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
+  final addressController = TextEditingController();
 
   Uint8List? selectedImageBytes;
 
@@ -33,7 +34,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
     loadBusiness();
   }
 
-  // LOAD BUSINESS
+  // Load existing business details
   Future<void> loadBusiness() async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -68,6 +69,8 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
 
         phoneController.text = data['phone']?.toString() ?? '';
 
+        addressController.text = data['address']?.toString() ?? '';
+
         oldImageBase64 = data['imageUrl']?.toString();
       });
     } catch (e) {
@@ -85,7 +88,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
     }
   }
 
-  // SELECT IMAGE
+  // Select business profile image
   Future<void> selectImage() async {
     try {
       final XFile? image = await picker.pickImage(
@@ -120,8 +123,10 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
     }
   }
 
-  // COMPRESS IMAGE
-  Future<String?> convertImageToBase64(Uint8List bytes) async {
+  // Compress image and convert it to Base64
+  Future<String?> convertImageToBase64(
+    Uint8List bytes,
+  ) async {
     try {
       final img.Image? originalImage = img.decodeImage(bytes);
 
@@ -129,13 +134,11 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
         return null;
       }
 
-      // Resize image
       final img.Image resizedImage = img.copyResize(
         originalImage,
         width: 400,
       );
 
-      // Compress as JPEG
       final List<int> compressedImage = img.encodeJpg(
         resizedImage,
         quality: 60,
@@ -147,7 +150,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
     }
   }
 
-  // SAVE BUSINESS
+  // Save business details
   Future<void> saveBusiness() async {
     final String businessName = businessNameController.text.trim();
 
@@ -155,7 +158,12 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
 
     final String phone = phoneController.text.trim();
 
-    if (businessName.isEmpty || email.isEmpty || phone.isEmpty) {
+    final String address = addressController.text.trim();
+
+    if (businessName.isEmpty ||
+        email.isEmpty ||
+        phone.isEmpty ||
+        address.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -188,7 +196,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
     try {
       String? imageBase64 = oldImageBase64;
 
-      // CONVERT IMAGE TO BASE64
+      // Convert selected image to Base64
       if (selectedImageBytes != null) {
         imageBase64 = await convertImageToBase64(
           selectedImageBytes!,
@@ -201,7 +209,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
         }
       }
 
-      // SAVE TO FIRESTORE
+      // Save business details to Firestore
       await FirebaseFirestore.instance
           .collection('businesses')
           .doc(user.uid)
@@ -209,6 +217,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
         'businessName': businessName,
         'email': email,
         'phone': phone,
+        'address': address,
         'imageUrl': imageBase64 ?? '',
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -254,6 +263,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
     businessNameController.dispose();
     emailController.dispose();
     phoneController.dispose();
+    addressController.dispose();
 
     super.dispose();
   }
@@ -263,14 +273,14 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Business Details',
+          'Business Info:',
         ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // PROFILE IMAGE
+            // Business profile image
             GestureDetector(
               onTap: selectImage,
               child: Container(
@@ -317,7 +327,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
 
             const SizedBox(height: 25),
 
-            // BUSINESS NAME
+            // Business name
             TextField(
               controller: businessNameController,
               decoration: const InputDecoration(
@@ -328,7 +338,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
 
             const SizedBox(height: 15),
 
-            // EMAIL
+            // Email
             TextField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
@@ -340,7 +350,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
 
             const SizedBox(height: 15),
 
-            // PHONE
+            // Phone number
             TextField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
@@ -350,9 +360,21 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
               ),
             ),
 
+            const SizedBox(height: 15),
+
+            // Business address
+            TextField(
+              controller: addressController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Address',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
             const SizedBox(height: 25),
 
-            // SAVE BUTTON
+            // Save button
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -375,7 +397,7 @@ class _CreateBusinessScreenState extends State<CreateBusinessScreen> {
           ],
         ),
       ),
-      backgroundColor: Color(0xffc6d1d7),
+      backgroundColor: const Color(0xffc6d1d7),
     );
   }
 }

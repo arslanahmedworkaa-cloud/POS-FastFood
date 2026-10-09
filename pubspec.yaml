@@ -17,6 +17,8 @@ dependencies:
   firebase_storage: ^11.6.0
   image_picker: ^1.0.7
   image: ^4.1.7
+  pdf: ^3.11.0
+  printing: ^5.13.1
 
 dev_dependencies:
   flutter_test:

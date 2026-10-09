@@ -26,6 +26,7 @@ class ItemsScreen extends StatelessWidget {
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+                // Opens the screen for adding a new item.
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -43,6 +44,7 @@ class ItemsScreen extends StatelessWidget {
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+                // Opens the screen for deleting an item.
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -60,6 +62,7 @@ class ItemsScreen extends StatelessWidget {
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+                // Opens the screen for editing an existing item.
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -77,6 +80,7 @@ class ItemsScreen extends StatelessWidget {
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+                // Opens the screen that displays saved items.
                 Navigator.push(
                   context,
                   MaterialPageRoute(

@@ -7,8 +7,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 class ListCategoriesScreen extends StatelessWidget {
   const ListCategoriesScreen({super.key});
 
+  // Gets the currently logged-in Firebase user.
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
+  // Opens the categories collection belonging to the current user.
   CollectionReference get categoriesCollection {
     return FirebaseFirestore.instance
         .collection('users')
@@ -18,6 +20,7 @@ class ListCategoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Prevents loading categories when no user is logged in.
     if (currentUser == null) {
       return const Scaffold(
         body: Center(
@@ -31,21 +34,25 @@ class ListCategoriesScreen extends StatelessWidget {
         title: const Text('List Categories'),
         backgroundColor: Colors.orangeAccent,
       ),
+      // Listens for category changes in Firestore in real time.
       body: StreamBuilder<QuerySnapshot>(
         stream: categoriesCollection.snapshots(),
         builder: (context, snapshot) {
+          // Shows a loader while categories are being fetched.
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
+          // Displays an error if Firestore cannot load the categories.
           if (snapshot.hasError) {
             return Center(
               child: Text('Error: ${snapshot.error}'),
             );
           }
 
+          // Keeps only documents that contain the required category fields.
           final categories = snapshot.data?.docs.where((category) {
                 final data = category.data() as Map<String, dynamic>;
 
@@ -55,6 +62,7 @@ class ListCategoriesScreen extends StatelessWidget {
               }).toList() ??
               [];
 
+          // Shows a message when there are no categories to display.
           if (categories.isEmpty) {
             return const Center(
               child: Text(
@@ -107,6 +115,7 @@ class ListCategoriesScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                // Creates one table row for each category.
                 ...categories.map((category) {
                   final data = category.data() as Map<String, dynamic>;
 
@@ -128,6 +137,7 @@ class ListCategoriesScreen extends StatelessWidget {
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8),
+                        // Converts the saved Base64 image back into bytes for display.
                         child: categoryImage.isNotEmpty
                             ? Image.memory(
                                 base64Decode(categoryImage),

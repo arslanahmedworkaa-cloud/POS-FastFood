@@ -26,6 +26,7 @@ class CategoriesScreen extends StatelessWidget {
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+                // Opens the screen where a new category can be created.
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -43,6 +44,7 @@ class CategoriesScreen extends StatelessWidget {
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+                // Opens the screen for deleting an existing category.
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -60,6 +62,7 @@ class CategoriesScreen extends StatelessWidget {
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+                // Opens the screen for editing category details.
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -77,6 +80,7 @@ class CategoriesScreen extends StatelessWidget {
               ),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+                // Opens the screen that displays the saved categories.
                 Navigator.push(
                   context,
                   MaterialPageRoute(

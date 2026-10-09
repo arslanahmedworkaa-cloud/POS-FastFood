@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AddItemScreen extends StatefulWidget {
@@ -17,8 +19,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
   String? selectedCategoryId;
   String selectedSize = 'N/A';
 
+  // Gets the currently logged-in Firebase user.
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
+  // Opens this user's categories collection in Firestore.
   CollectionReference get categoriesCollection {
     return FirebaseFirestore.instance
         .collection('users')
@@ -26,6 +30,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         .collection('categories');
   }
 
+  // Opens this user's items collection in Firestore.
   CollectionReference get itemsCollection {
     return FirebaseFirestore.instance
         .collection('users')
@@ -33,11 +38,68 @@ class _AddItemScreenState extends State<AddItemScreen> {
         .collection('items');
   }
 
+  // Returns size options based on the selected category.
+  List<String> getSizeOptions(
+    List<QueryDocumentSnapshot> categories,
+  ) {
+    // Shows the default options when no category is selected.
+    if (selectedCategoryId == null) {
+      return [
+        'Small',
+        'Medium',
+        'Large',
+        'N/A',
+      ];
+    }
+
+    // Finds the selected category to check its name.
+    for (final category in categories) {
+      final data = category.data() as Map<String, dynamic>;
+
+      final String categoryId = data['categoryId']?.toString() ?? '';
+
+      final String categoryName = data['categoryName']?.toString() ?? '';
+
+      if (categoryId == selectedCategoryId) {
+        final String name = categoryName.toLowerCase();
+
+        // Cold drinks use volume-based size options.
+        if (name.contains('cold drinks')) {
+          return [
+            'Regular',
+            '500 ml',
+            '1 ltr',
+            '1.5 ltr',
+          ];
+        }
+
+        // Hot drinks have only one size option.
+        if (name.contains('hot drinks')) {
+          return [
+            'Regular',
+          ];
+        }
+
+        break;
+      }
+    }
+
+    // Uses the default options for all other categories.
+    return [
+      'Small',
+      'Medium',
+      'Large',
+      'N/A',
+    ];
+  }
+
   Future<void> saveItem() async {
+    // Reads the input values and removes extra spaces.
     String itemId = itemIdController.text.trim();
     String itemName = itemNameController.text.trim();
     String price = priceController.text.trim();
 
+    // A category must be selected before saving the item.
     if (selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -75,6 +137,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     }
 
     try {
+      // Checks whether an item with this ID already exists.
       final existingItem = await itemsCollection.doc(itemId).get();
 
       if (existingItem.exists) {
@@ -89,6 +152,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         return;
       }
 
+      // Saves the item details under its ID in the user's items collection.
       await itemsCollection.doc(itemId).set({
         'itemId': itemId,
         'itemName': itemName,
@@ -106,10 +170,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
         ),
       );
 
+      // Clears the fields after the item is saved.
       itemIdController.clear();
       itemNameController.clear();
       priceController.clear();
 
+      // Resets the category and size selections for the next item.
       setState(() {
         selectedCategoryId = null;
         selectedSize = 'N/A';
@@ -127,6 +193,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   void dispose() {
+    // Releases the controllers when this screen is removed.
     itemIdController.dispose();
     itemNameController.dispose();
     priceController.dispose();
@@ -135,6 +202,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Prevents using the user's Firestore collections when logged out.
     if (currentUser == null) {
       return const Scaffold(
         body: Center(
@@ -148,6 +216,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         title: const Text('Add Item'),
         backgroundColor: Colors.orangeAccent,
       ),
+      // Loads categories and updates the dropdown when Firestore changes.
       body: StreamBuilder<QuerySnapshot>(
         stream: categoriesCollection.snapshots(),
         builder: (context, snapshot) {
@@ -164,6 +233,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
           }
 
           final categories = snapshot.data?.docs ?? [];
+
+          // Calculates the size choices for the currently selected category.
+          final List<String> sizeOptions = getSizeOptions(categories);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -197,6 +269,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                               border: OutlineInputBorder(),
                               hintText: 'Select Category',
                             ),
+                            // Uses Firestore categories as dropdown choices.
                             items: categories.map((category) {
                               final data =
                                   category.data() as Map<String, dynamic>;
@@ -213,6 +286,33 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             onChanged: (value) {
                               setState(() {
                                 selectedCategoryId = value;
+
+                                // Finds the selected category's name to choose its default size.
+                                String categoryName = '';
+
+                                for (final category in categories) {
+                                  final data =
+                                      category.data() as Map<String, dynamic>;
+
+                                  final String id =
+                                      data['categoryId']?.toString() ?? '';
+
+                                  if (id == value) {
+                                    categoryName = data['categoryName']
+                                            ?.toString()
+                                            .toLowerCase() ??
+                                        '';
+                                    break;
+                                  }
+                                }
+
+                                // Sets the initial size for drinks and other categories.
+                                if (categoryName.contains('cold drinks') ||
+                                    categoryName.contains('hot drinks')) {
+                                  selectedSize = 'Regular';
+                                } else {
+                                  selectedSize = 'N/A';
+                                }
                               });
                             },
                           ),
@@ -279,31 +379,24 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         Padding(
                           padding: const EdgeInsets.all(8),
                           child: DropdownButtonFormField<String>(
-                            value: selectedSize,
+                            // Keeps the selected size valid for the available options.
+                            value: sizeOptions.contains(selectedSize)
+                                ? selectedSize
+                                : sizeOptions.first,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                             ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'Small',
-                                child: Text('Small'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Medium',
-                                child: Text('Medium'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Large',
-                                child: Text('Large'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'N/A',
-                                child: Text('N/A'),
-                              ),
-                            ],
+                            items: sizeOptions.map(
+                              (size) {
+                                return DropdownMenuItem<String>(
+                                  value: size,
+                                  child: Text(size),
+                                );
+                              },
+                            ).toList(),
                             onChanged: (value) {
                               setState(() {
-                                selectedSize = value ?? 'N/A';
+                                selectedSize = value ?? sizeOptions.first;
                               });
                             },
                           ),
@@ -349,7 +442,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           );
         },
       ),
-      backgroundColor: Color(0xffc6d1d7),
+      backgroundColor: const Color(0xffc6d1d7),
     );
   }
 }
