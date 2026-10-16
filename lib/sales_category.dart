@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+// Warm colors used on this sales report screen.
+const Color pizzaRed = Color(0xFFD93636);
+const Color pizzaOrange = Color(0xFFFF8A3D);
+const Color creamBackground = Color(0xFFFFF8F1);
+const Color darkText = Color(0xFF292524);
+
 class SalesCategoryScreen extends StatefulWidget {
   const SalesCategoryScreen({super.key});
 
@@ -31,6 +37,19 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
       initialDate: fromDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: pizzaRed,
+              onPrimary: Colors.white,
+              surface: creamBackground,
+              onSurface: darkText,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedDate != null) {
@@ -46,6 +65,19 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
       initialDate: toDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: pizzaRed,
+              onPrimary: Colors.white,
+              surface: creamBackground,
+              onSurface: darkText,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedDate != null) {
@@ -109,6 +141,33 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
     return !orderDate.isBefore(startDate) && !orderDate.isAfter(endDate);
   }
 
+  // Common decoration for the From and To date fields.
+  InputDecoration dateDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: darkText),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 14,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE7D8CD)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE7D8CD)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: pizzaRed, width: 1.5),
+      ),
+      suffixIcon: const Icon(Icons.calendar_month, color: pizzaRed),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
@@ -117,11 +176,11 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Sales - Category Wise'),
-          backgroundColor: Colors.orangeAccent,
+          backgroundColor: pizzaRed,
+          foregroundColor: Colors.white,
         ),
-        body: const Center(
-          child: Text('User not logged in'),
-        ),
+        backgroundColor: creamBackground,
+        body: const Center(child: Text('User not logged in')),
       );
     }
 
@@ -132,25 +191,26 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sales - Category Wise'),
-        backgroundColor: Colors.orangeAccent,
+        title: const Text(
+          'Sales - Category Wise',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: pizzaRed,
+        foregroundColor: Colors.white,
+        elevation: 2,
       ),
-      backgroundColor: const Color(0xffc6d1d7),
+      backgroundColor: creamBackground,
       body: StreamBuilder<QuerySnapshot>(
         stream: orders.snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: pizzaRed),
             );
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-              ),
-            );
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final List<QueryDocumentSnapshot> allOrders =
@@ -200,7 +260,6 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
           }
 
           final List<String> categories = categoryQuantities.keys.toList();
-
           categories.sort();
 
           double grandTotal = 0;
@@ -213,86 +272,105 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
             padding: const EdgeInsets.all(12),
             child: Column(
               children: [
-                // From and To date selection
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: selectFromDate,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'From',
-                            border: OutlineInputBorder(),
-                            suffixIcon: Icon(Icons.calendar_month),
-                          ),
-                          child: Text(
-                            fromDate == null
-                                ? 'Select date'
-                                : formatDate(fromDate!),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: InkWell(
-                        onTap: selectToDate,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'To',
-                            border: OutlineInputBorder(),
-                            suffixIcon: Icon(Icons.calendar_month),
-                          ),
-                          child: Text(
-                            toDate == null
-                                ? 'Select date'
-                                : formatDate(toDate!),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (fromDate == null || toDate == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Please select both From and To dates',
+                // Date selection and Search button.
+                Card(
+                  elevation: 2,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: selectFromDate,
+                            child: InputDecorator(
+                              decoration: dateDecoration('From'),
+                              child: Text(
+                                fromDate == null
+                                    ? 'Select date'
+                                    : formatDate(fromDate!),
+                                style: const TextStyle(color: darkText),
                               ),
                             ),
-                          );
-                          return;
-                        }
-
-                        if (fromDate!.isAfter(toDate!)) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'From date cannot be after To date',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InkWell(
+                            onTap: selectToDate,
+                            child: InputDecorator(
+                              decoration: dateDecoration('To'),
+                              child: Text(
+                                toDate == null
+                                    ? 'Select date'
+                                    : formatDate(toDate!),
+                                style: const TextStyle(color: darkText),
                               ),
                             ),
-                          );
-                          return;
-                        }
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: pizzaRed,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            if (fromDate == null || toDate == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please select both From and To dates',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
 
-                        setState(() {
-                          searchClicked = true;
-                        });
-                      },
-                      child: const Text('Search'),
+                            if (fromDate!.isAfter(toDate!)) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'From date cannot be after To date',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+
+                            setState(() {
+                              searchClicked = true;
+                            });
+                          },
+                          child: const Text('Search'),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
 
-                const SizedBox(height: 15),
+                const SizedBox(height: 12),
 
                 if (categories.isEmpty)
                   const Expanded(
                     child: Center(
                       child: Text(
                         'No sales found',
-                        style: TextStyle(fontSize: 18),
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: darkText,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   )
@@ -325,73 +403,93 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
                                     constraints: const BoxConstraints(
                                       minWidth: 600,
                                     ),
-                                    child: DataTable(
-                                      headingRowHeight: 50,
-                                      dataRowMinHeight: 55,
-                                      dataRowMaxHeight: 65,
-                                      columnSpacing: 40,
-                                      columns: const [
-                                        DataColumn(
-                                          label: Text(
-                                            'Category',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
+                                    child: Card(
+                                      elevation: 2,
+                                      margin: EdgeInsets.zero,
+                                      clipBehavior: Clip.antiAlias,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: DataTable(
+                                        headingRowHeight: 52,
+                                        dataRowMinHeight: 55,
+                                        dataRowMaxHeight: 65,
+                                        columnSpacing: 40,
+                                        dividerThickness: 0.7,
+                                        headingRowColor:
+                                            WidgetStateProperty.all(
+                                          const Color(0xFFFFE5D5),
+                                        ),
+                                        columns: const [
+                                          DataColumn(
+                                            label: Text(
+                                              'Category',
+                                              style: TextStyle(
+                                                color: pizzaRed,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        DataColumn(
-                                          label: Text(
-                                            'Quantity',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
+                                          DataColumn(
+                                            label: Text(
+                                              'Quantity',
+                                              style: TextStyle(
+                                                color: pizzaRed,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        DataColumn(
-                                          label: Text(
-                                            'Total',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
+                                          DataColumn(
+                                            label: Text(
+                                              'Total',
+                                              style: TextStyle(
+                                                color: pizzaRed,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                      rows: categories.map((category) {
-                                        final int quantity =
-                                            categoryQuantities[category] ?? 0;
+                                        ],
+                                        rows: categories.map((category) {
+                                          final int quantity =
+                                              categoryQuantities[category] ?? 0;
 
-                                        final double total =
-                                            categoryTotals[category] ?? 0;
+                                          final double total =
+                                              categoryTotals[category] ?? 0;
 
-                                        return DataRow(
-                                          cells: [
-                                            DataCell(
-                                              Text(
-                                                category,
-                                                style: const TextStyle(
-                                                  fontSize: 16,
+                                          return DataRow(
+                                            cells: [
+                                              DataCell(
+                                                Text(
+                                                  category,
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    color: darkText,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            DataCell(
-                                              Text(
-                                                quantity.toString(),
-                                                style: const TextStyle(
-                                                  fontSize: 16,
+                                              DataCell(
+                                                Text(
+                                                  quantity.toString(),
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    color: darkText,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            DataCell(
-                                              Text(
-                                                'Rs. ${total.toStringAsFixed(0)}',
-                                                style: const TextStyle(
-                                                  fontSize: 16,
+                                              DataCell(
+                                                Text(
+                                                  'Rs. ${total.toStringAsFixed(0)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    color: darkText,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
+                                            ],
+                                          );
+                                        }).toList(),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -405,10 +503,15 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
 
                 const SizedBox(height: 12),
 
+                // Grand Total card.
                 Card(
                   elevation: 3,
+                  color: pizzaRed,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(15),
+                    padding: const EdgeInsets.all(17),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -416,6 +519,7 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
                           'Grand Total',
                           style: TextStyle(
                             fontSize: 20,
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -423,6 +527,7 @@ class _SalesCategoryScreenState extends State<SalesCategoryScreen> {
                           'Rs. ${grandTotal.toStringAsFixed(0)}',
                           style: const TextStyle(
                             fontSize: 20,
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

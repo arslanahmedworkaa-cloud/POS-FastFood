@@ -4,13 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+const pizzaRed = Color(0xFFD93636);
+const pizzaOrange = Color(0xFFFF8A3D);
+const creamBackground = Color(0xFFFFF8F1);
+const darkText = Color(0xFF292524);
+
 class ListCategoriesScreen extends StatelessWidget {
   const ListCategoriesScreen({super.key});
 
-  // Gets the currently logged-in Firebase user.
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
-  // Opens the categories collection belonging to the current user.
   CollectionReference get categoriesCollection {
     return FirebaseFirestore.instance
         .collection('users')
@@ -20,39 +23,37 @@ class ListCategoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Prevents loading categories when no user is logged in.
     if (currentUser == null) {
       return const Scaffold(
-        body: Center(
-          child: Text('User is not logged in'),
-        ),
+        backgroundColor: creamBackground,
+        body: Center(child: Text('User is not logged in')),
       );
     }
 
     return Scaffold(
+      backgroundColor: creamBackground,
       appBar: AppBar(
-        title: const Text('List Categories'),
-        backgroundColor: Colors.orangeAccent,
+        title: const Text(
+          'List Categories',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: pizzaRed,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      // Listens for category changes in Firestore in real time.
       body: StreamBuilder<QuerySnapshot>(
         stream: categoriesCollection.snapshots(),
         builder: (context, snapshot) {
-          // Shows a loader while categories are being fetched.
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: pizzaRed),
             );
           }
 
-          // Displays an error if Firestore cannot load the categories.
           if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          // Keeps only documents that contain the required category fields.
           final categories = snapshot.data?.docs.where((category) {
                 final data = category.data() as Map<String, dynamic>;
 
@@ -62,100 +63,139 @@ class ListCategoriesScreen extends StatelessWidget {
               }).toList() ??
               [];
 
-          // Shows a message when there are no categories to display.
           if (categories.isEmpty) {
             return const Center(
               child: Text(
                 'No categories added yet',
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(
+                  fontSize: 18,
+                  color: darkText,
+                ),
               ),
             );
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Table(
-              border: TableBorder.all(
-                color: Colors.grey,
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: darkText.withOpacity(0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              columnWidths: const {
-                0: FlexColumnWidth(1),
-                1: FlexColumnWidth(1.5),
-                2: FlexColumnWidth(1),
-              },
-              children: [
-                TableRow(
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Category ID',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Category Name',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Category Image',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+              child: Table(
+                border: TableBorder.all(
+                  color: const Color(0xFFE7D8CC),
                 ),
-                // Creates one table row for each category.
-                ...categories.map((category) {
-                  final data = category.data() as Map<String, dynamic>;
-
-                  String categoryId = data['categoryId'] ?? '';
-
-                  String categoryName = data['categoryName'] ?? '';
-
-                  String categoryImage = data['categoryImage'] ?? '';
-
-                  return TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(categoryId),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(categoryName),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        // Converts the saved Base64 image back into bytes for display.
-                        child: categoryImage.isNotEmpty
-                            ? Image.memory(
-                                base64Decode(categoryImage),
-                                height: 60,
-                                width: 60,
-                                fit: BoxFit.cover,
-                              )
-                            : const Icon(Icons.image),
-                      ),
+                columnWidths: const {
+                  0: FlexColumnWidth(1),
+                  1: FlexColumnWidth(1.5),
+                  2: FlexColumnWidth(1),
+                },
+                children: [
+                  TableRow(
+                    decoration: const BoxDecoration(
+                      color: creamBackground,
+                    ),
+                    children: const [
+                      _ListHeaderCell('Category ID'),
+                      _ListHeaderCell('Category Name'),
+                      _ListHeaderCell('Category Image'),
                     ],
-                  );
-                }),
-              ],
+                  ),
+                  ...categories.map((category) {
+                    final data = category.data() as Map<String, dynamic>;
+
+                    final String categoryId = data['categoryId'] ?? '';
+                    final String categoryName = data['categoryName'] ?? '';
+                    final String categoryImage = data['categoryImage'] ?? '';
+
+                    return TableRow(
+                      children: [
+                        _ListBodyCell(categoryId),
+                        _ListBodyCell(categoryName),
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: categoryImage.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.memory(
+                                    base64Decode(categoryImage),
+                                    height: 65,
+                                    width: 65,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stack) {
+                                      return const Icon(
+                                        Icons.broken_image_outlined,
+                                        color: pizzaOrange,
+                                        size: 35,
+                                      );
+                                    },
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.image_outlined,
+                                  color: pizzaOrange,
+                                  size: 35,
+                                ),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
             ),
           );
         },
       ),
-      backgroundColor: Color(0xffc6d1d7),
+    );
+  }
+}
+
+class _ListHeaderCell extends StatelessWidget {
+  final String text;
+
+  const _ListHeaderCell(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          color: pizzaRed,
+        ),
+      ),
+    );
+  }
+}
+
+class _ListBodyCell extends StatelessWidget {
+  final String text;
+
+  const _ListBodyCell(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: const TextStyle(color: darkText),
+        ),
+      ),
     );
   }
 }

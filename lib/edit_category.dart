@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -7,13 +6,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 
+const pizzaRed = Color(0xFFD93636);
+const pizzaOrange = Color(0xFFFF8A3D);
+const creamBackground = Color(0xFFFFF8F1);
+const darkText = Color(0xFF292524);
+
 class EditCategoryScreen extends StatelessWidget {
   const EditCategoryScreen({super.key});
 
-  // Gets the currently logged-in Firebase user.
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
-  // Opens the categories collection belonging to the current user.
   CollectionReference get categoriesCollection {
     return FirebaseFirestore.instance
         .collection('users')
@@ -23,37 +25,37 @@ class EditCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Prevents category data from being accessed when no user is logged in.
     if (currentUser == null) {
       return const Scaffold(
-        body: Center(
-          child: Text('User is not logged in'),
-        ),
+        backgroundColor: creamBackground,
+        body: Center(child: Text('User is not logged in')),
       );
     }
 
     return Scaffold(
+      backgroundColor: creamBackground,
       appBar: AppBar(
-        title: const Text('Edit Category'),
-        backgroundColor: Colors.orangeAccent,
+        title: const Text(
+          'Edit Category',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: pizzaRed,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      // Listens for category changes in Firestore and updates the screen automatically.
       body: StreamBuilder<QuerySnapshot>(
         stream: categoriesCollection.snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: pizzaRed),
             );
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
-          // Keeps only documents that contain all required category fields.
           final categories = snapshot.data?.docs.where((category) {
                 final data = category.data() as Map<String, dynamic>;
 
@@ -67,119 +69,121 @@ class EditCategoryScreen extends StatelessWidget {
             return const Center(
               child: Text(
                 'No categories added yet',
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(
+                  fontSize: 18,
+                  color: darkText,
+                ),
               ),
             );
           }
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.all(20),
-            child: Table(
-              border: TableBorder.all(
-                color: Colors.grey,
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: darkText.withOpacity(0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              columnWidths: const {
-                0: FixedColumnWidth(80),
-                1: FixedColumnWidth(80),
-                2: FixedColumnWidth(80),
-                3: FixedColumnWidth(105),
-              },
-              children: [
-                TableRow(
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Category ID',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Category Name',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Image',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Action',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+              child: Table(
+                border: TableBorder.all(
+                  color: const Color(0xFFE7D8CC),
                 ),
-                ...categories.map((category) {
-                  final data = category.data() as Map<String, dynamic>;
-
-                  String categoryId = data['categoryId'] ?? '';
-
-                  String categoryName = data['categoryName'] ?? '';
-
-                  String categoryImage = data['categoryImage'] ?? '';
-
-                  return TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(categoryId),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(categoryName),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: categoryImage.isNotEmpty
-                            // Converts the saved Base64 string back into image bytes.
-                            ? Image.memory(
-                                base64Decode(categoryImage),
-                                height: 60,
-                                width: 60,
-                                fit: BoxFit.cover,
-                              )
-                            : const Icon(Icons.image),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Opens the edit form and passes the selected category's current data.
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditCategoryForm(
-                                  categoryId: categoryId,
-                                  categoryName: categoryName,
-                                  categoryImage: categoryImage,
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Text('Edit'),
-                        ),
-                      ),
+                columnWidths: const {
+                  0: FixedColumnWidth(100),
+                  1: FixedColumnWidth(130),
+                  2: FixedColumnWidth(100),
+                  3: FixedColumnWidth(105),
+                },
+                children: [
+                  TableRow(
+                    decoration: const BoxDecoration(
+                      color: creamBackground,
+                    ),
+                    children: const [
+                      _HeaderCell('Category ID'),
+                      _HeaderCell('Category Name'),
+                      _HeaderCell('Image'),
+                      _HeaderCell('Action'),
                     ],
-                  );
-                }),
-              ],
+                  ),
+                  ...categories.map((category) {
+                    final data = category.data() as Map<String, dynamic>;
+
+                    final String categoryId = data['categoryId'] ?? '';
+                    final String categoryName = data['categoryName'] ?? '';
+                    final String categoryImage = data['categoryImage'] ?? '';
+
+                    return TableRow(
+                      children: [
+                        _BodyCell(categoryId),
+                        _BodyCell(categoryName),
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: categoryImage.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.memory(
+                                    base64Decode(categoryImage),
+                                    height: 60,
+                                    width: 60,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stack) {
+                                      return const Icon(
+                                        Icons.broken_image_outlined,
+                                        color: pizzaOrange,
+                                        size: 35,
+                                      );
+                                    },
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.image_outlined,
+                                  color: pizzaOrange,
+                                ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditCategoryForm(
+                                    categoryId: categoryId,
+                                    categoryName: categoryName,
+                                    categoryImage: categoryImage,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: pizzaOrange,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('Edit'),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
             ),
           );
         },
@@ -189,7 +193,6 @@ class EditCategoryScreen extends StatelessWidget {
 }
 
 class EditCategoryForm extends StatefulWidget {
-  // These values are passed from the selected category in the previous screen.
   final String categoryId;
   final String categoryName;
   final String categoryImage;
@@ -209,7 +212,6 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
   late TextEditingController idController;
   late TextEditingController nameController;
 
-  // Holds the newly selected image as bytes until the category is updated.
   Uint8List? selectedImage;
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
@@ -218,20 +220,37 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
   void initState() {
     super.initState();
 
-    // Fills the form with the selected category's existing values.
-    idController = TextEditingController(
-      text: widget.categoryId,
-    );
+    idController = TextEditingController(text: widget.categoryId);
+    nameController = TextEditingController(text: widget.categoryName);
+  }
 
-    nameController = TextEditingController(
-      text: widget.categoryName,
+  InputDecoration fieldDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: creamBackground,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 14,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE7D8CC)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE7D8CC)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: pizzaRed, width: 1.5),
+      ),
     );
   }
 
   Future<void> selectImage() async {
     final ImagePicker picker = ImagePicker();
 
-    // Opens the gallery and limits the selected image's size and quality.
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 600,
@@ -239,45 +258,36 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
       imageQuality: 50,
     );
 
-    // Stops if the user closes the gallery without selecting an image.
-    if (image == null) {
-      return;
-    }
+    if (image == null) return;
 
     final bytes = await image.readAsBytes();
 
-    // Saves the selected image so its preview can update on the screen.
+    if (!mounted) return;
+
     setState(() {
       selectedImage = bytes;
     });
   }
 
   Future<void> updateCategory() async {
-    String categoryName = nameController.text.trim();
+    final String categoryName = nameController.text.trim();
 
-    // Category name is required before saving changes.
     if (categoryName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter Category Name'),
-        ),
+        const SnackBar(content: Text('Please enter Category Name')),
       );
       return;
     }
 
-    if (currentUser == null) {
-      return;
-    }
+    if (currentUser == null) return;
 
     try {
-      // Keeps the old image unless the user selects a replacement.
       String imageToSave = widget.categoryImage;
 
       if (selectedImage != null) {
         imageToSave = base64Encode(selectedImage!);
       }
 
-      // Updates the existing category document without changing its ID.
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser!.uid)
@@ -289,31 +299,24 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // Checks that this screen still exists before using its context.
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Category updated successfully'),
-        ),
+        const SnackBar(content: Text('Category updated successfully')),
       );
 
-      // Returns to the previous screen after a successful update.
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-        ),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
 
   @override
   void dispose() {
-    // Releases the controllers when this screen is removed.
     idController.dispose();
     nameController.dispose();
     super.dispose();
@@ -322,130 +325,195 @@ class _EditCategoryFormState extends State<EditCategoryForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: creamBackground,
       appBar: AppBar(
-        title: const Text('Edit Category'),
-        backgroundColor: Colors.orangeAccent,
+        title: const Text(
+          'Edit Category',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: pizzaRed,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Table(
-              border: TableBorder.all(
-                color: Colors.grey,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: darkText.withOpacity(0.06),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
               ),
-              columnWidths: const {
-                0: FlexColumnWidth(1),
-                1: FlexColumnWidth(2),
-              },
-              children: [
-                TableRow(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text(
-                        'Category ID',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: TextField(
-                        controller: idController,
-                        readOnly: true,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                  ],
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Update Category Details',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: darkText,
                 ),
-                TableRow(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text(
-                        'Category Name',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                  ],
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Category ID',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: darkText,
                 ),
-                TableRow(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text(
-                        'Category Image',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Column(
-                        children: [
-                          // Shows the newly selected image first, otherwise the saved image.
-                          if (selectedImage != null)
-                            Image.memory(
-                              selectedImage!,
-                              height: 120,
-                              width: 120,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: idController,
+                readOnly: true,
+                decoration: fieldDecoration('Category ID'),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Category Name',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: darkText,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: nameController,
+                decoration: fieldDecoration('Enter Category Name'),
+              ),
+              const SizedBox(height: 22),
+              const Text(
+                'Category Image',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: darkText,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 180,
+                  height: 155,
+                  decoration: BoxDecoration(
+                    color: creamBackground,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE7D8CC)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: selectedImage != null
+                      ? Image.memory(
+                          selectedImage!,
+                          fit: BoxFit.cover,
+                        )
+                      : widget.categoryImage.isNotEmpty
+                          ? Image.memory(
+                              base64Decode(widget.categoryImage),
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stack) {
+                                return const Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 54,
+                                  color: pizzaOrange,
+                                );
+                              },
                             )
-                          else if (widget.categoryImage.isNotEmpty)
-                            Image.memory(
-                              base64Decode(
-                                widget.categoryImage,
-                              ),
-                              height: 120,
-                              width: 120,
-                              fit: BoxFit.cover,
-                            )
-                          else
-                            const Icon(
-                              Icons.image,
-                              size: 80,
-                              color: Colors.grey,
+                          : const Icon(
+                              Icons.image_outlined,
+                              size: 54,
+                              color: pizzaOrange,
                             ),
-                          const SizedBox(height: 10),
-                          ElevatedButton(
-                            onPressed: selectImage,
-                            child: const Text('Change Image'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 25),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: updateCategory,
-                child: const Text('Update'),
               ),
-            ),
-          ],
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: selectImage,
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: const Text('Change Image'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: pizzaRed,
+                    side: const BorderSide(color: pizzaRed),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: updateCategory,
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('Update Category'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: pizzaRed,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      backgroundColor: Color(0xffc6d1d7),
+    );
+  }
+}
+
+class _HeaderCell extends StatelessWidget {
+  final String text;
+
+  const _HeaderCell(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          color: pizzaRed,
+        ),
+      ),
+    );
+  }
+}
+
+class _BodyCell extends StatelessWidget {
+  final String text;
+
+  const _BodyCell(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: const TextStyle(color: darkText),
+        ),
+      ),
     );
   }
 }

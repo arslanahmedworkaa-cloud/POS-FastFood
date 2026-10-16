@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+// Restaurant theme colors.
+const Color pizzaRed = Color(0xFFD93636);
+const Color pizzaOrange = Color(0xFFFF8A3D);
+const Color creamBackground = Color(0xFFFFF8F1);
+const Color darkText = Color(0xFF292524);
+
 class EditItemScreen extends StatefulWidget {
   const EditItemScreen({super.key});
 
@@ -13,6 +19,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   final ScrollController verticalController = ScrollController();
   final ScrollController horizontalController = ScrollController();
 
+  // Gets the category name using its saved category ID.
   Future<String> getCategoryName(String categoryId) async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -55,16 +62,21 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
     if (user == null) {
       return const Scaffold(
-        body: Center(
-          child: Text('User is not logged in'),
-        ),
+        backgroundColor: creamBackground,
+        body: Center(child: Text('User is not logged in')),
       );
     }
 
     return Scaffold(
+      backgroundColor: creamBackground,
       appBar: AppBar(
-        title: const Text('Edit Items'),
-        backgroundColor: Colors.orangeAccent,
+        title: const Text(
+          'Edit Items',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: pizzaRed,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -75,127 +87,194 @@ class _EditItemScreenState extends State<EditItemScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: pizzaRed),
             );
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final items = snapshot.data?.docs ?? [];
 
           if (items.isEmpty) {
             return const Center(
-              child: Text('No items added yet'),
+              child: Text(
+                'No items added yet',
+                style: TextStyle(color: darkText),
+              ),
             );
           }
 
           return Padding(
-            padding: const EdgeInsets.all(10),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SizedBox(
-                  height: constraints.maxHeight,
-                  width: constraints.maxWidth,
-                  child: Scrollbar(
-                    controller: verticalController,
-                    thumbVisibility: true,
-                    trackVisibility: true,
-                    child: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: Card(
+              color: Colors.white,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SizedBox(
+                    height: constraints.maxHeight,
+                    width: constraints.maxWidth,
+                    child: Scrollbar(
                       controller: verticalController,
-                      scrollDirection: Axis.vertical,
-                      child: Scrollbar(
-                        controller: horizontalController,
-                        thumbVisibility: true,
-                        trackVisibility: true,
-                        notificationPredicate: (notification) {
-                          return notification.metrics.axis == Axis.horizontal;
-                        },
-                        child: SingleChildScrollView(
+                      thumbVisibility: true,
+                      trackVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: verticalController,
+                        scrollDirection: Axis.vertical,
+                        child: Scrollbar(
                           controller: horizontalController,
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              minWidth: 700,
-                            ),
-                            child: DataTable(
-                              columnSpacing: 25,
-                              columns: const [
-                                DataColumn(label: Text('Item ID')),
-                                DataColumn(label: Text('Item Name')),
-                                DataColumn(label: Text('Category')),
-                                DataColumn(label: Text('Size')),
-                                DataColumn(label: Text('Price')),
-                                DataColumn(label: Text('Action')),
-                              ],
-                              rows: items.map((doc) {
-                                final data = doc.data() as Map<String, dynamic>;
-
-                                final String itemId =
-                                    data['itemId']?.toString() ?? '';
-
-                                final String itemName =
-                                    data['itemName']?.toString() ?? '';
-
-                                final String categoryId =
-                                    data['categoryId']?.toString() ?? '';
-
-                                final String size =
-                                    data['size']?.toString() ?? '';
-
-                                final String price =
-                                    data['price']?.toString() ?? '';
-
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text(itemId)),
-                                    DataCell(Text(itemName)),
-                                    DataCell(
-                                      FutureBuilder<String>(
-                                        future: getCategoryName(categoryId),
-                                        builder: (context, categorySnapshot) {
-                                          return Text(
-                                            categorySnapshot.data ?? categoryId,
-                                          );
-                                        },
+                          thumbVisibility: true,
+                          trackVisibility: true,
+                          notificationPredicate: (notification) {
+                            return notification.metrics.axis == Axis.horizontal;
+                          },
+                          child: SingleChildScrollView(
+                            controller: horizontalController,
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                minWidth: 700,
+                              ),
+                              child: DataTable(
+                                headingRowColor: MaterialStateProperty.all(
+                                  const Color(0xFFFFF1E7),
+                                ),
+                                dataRowMinHeight: 58,
+                                dataRowMaxHeight: 70,
+                                columnSpacing: 25,
+                                columns: const [
+                                  DataColumn(
+                                    label: Text(
+                                      'Item ID',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: darkText,
                                       ),
                                     ),
-                                    DataCell(Text(size)),
-                                    DataCell(Text(price)),
-                                    DataCell(
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  EditItemForm(
-                                                itemId: itemId,
-                                                itemName: itemName,
-                                                categoryId: categoryId,
-                                                size: size,
-                                                price: price,
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Item Name',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: darkText,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Category',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: darkText,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Size',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: darkText,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Price',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: darkText,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Action',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: darkText,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                rows: items.map((doc) {
+                                  final data =
+                                      doc.data() as Map<String, dynamic>;
+
+                                  final String itemId =
+                                      data['itemId']?.toString() ?? '';
+                                  final String itemName =
+                                      data['itemName']?.toString() ?? '';
+                                  final String categoryId =
+                                      data['categoryId']?.toString() ?? '';
+                                  final String size =
+                                      data['size']?.toString() ?? '';
+                                  final String price =
+                                      data['price']?.toString() ?? '';
+
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(Text(itemId)),
+                                      DataCell(Text(itemName)),
+                                      DataCell(
+                                        FutureBuilder<String>(
+                                          future: getCategoryName(categoryId),
+                                          builder: (context, categorySnapshot) {
+                                            return Text(
+                                              categorySnapshot.data ??
+                                                  categoryId,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      DataCell(Text(size)),
+                                      DataCell(Text(price)),
+                                      DataCell(
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    EditItemForm(
+                                                  itemId: itemId,
+                                                  itemName: itemName,
+                                                  categoryId: categoryId,
+                                                  size: size,
+                                                  price: price,
+                                                ),
                                               ),
+                                            );
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: pizzaOrange,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
-                                          );
-                                        },
-                                        child: const Text('Edit'),
+                                          ),
+                                          child: const Text('Edit'),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           );
         },
@@ -227,6 +306,7 @@ class EditItemForm extends StatefulWidget {
 class _EditItemFormState extends State<EditItemForm> {
   late TextEditingController itemNameController;
   late TextEditingController priceController;
+  late TextEditingController itemIdController;
 
   String? selectedCategory;
   String? selectedSize;
@@ -238,8 +318,8 @@ class _EditItemFormState extends State<EditItemForm> {
     super.initState();
 
     itemNameController = TextEditingController(text: widget.itemName);
-
     priceController = TextEditingController(text: widget.price);
+    itemIdController = TextEditingController(text: widget.itemId);
 
     selectedCategory = widget.categoryId;
     selectedSize = widget.size;
@@ -247,6 +327,7 @@ class _EditItemFormState extends State<EditItemForm> {
     loadCategories();
   }
 
+  // Loads category IDs and names from the current user's collection.
   Future<void> loadCategories() async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -267,7 +348,6 @@ class _EditItemFormState extends State<EditItemForm> {
         final data = doc.data();
 
         final String id = data['categoryId']?.toString() ?? '';
-
         final String name = data['categoryName']?.toString() ?? '';
 
         if (id.isNotEmpty && name.isNotEmpty) {
@@ -287,13 +367,12 @@ class _EditItemFormState extends State<EditItemForm> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading categories: $e'),
-        ),
+        SnackBar(content: Text('Error loading categories: $e')),
       );
     }
   }
 
+  // Saves the edited item details to Firestore.
   Future<void> updateItem() async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -303,36 +382,28 @@ class _EditItemFormState extends State<EditItemForm> {
 
     if (selectedCategory == null || selectedCategory!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select Category'),
-        ),
+        const SnackBar(content: Text('Please select Category')),
       );
       return;
     }
 
     if (itemNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter Item Name'),
-        ),
+        const SnackBar(content: Text('Please enter Item Name')),
       );
       return;
     }
 
     if (selectedSize == null || selectedSize!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select Size'),
-        ),
+        const SnackBar(content: Text('Please select Size')),
       );
       return;
     }
 
     if (priceController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter Price'),
-        ),
+        const SnackBar(content: Text('Please enter Price')),
       );
       return;
     }
@@ -354,9 +425,7 @@ class _EditItemFormState extends State<EditItemForm> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Item updated successfully'),
-        ),
+        const SnackBar(content: Text('Item updated successfully')),
       );
 
       Navigator.pop(context);
@@ -364,9 +433,7 @@ class _EditItemFormState extends State<EditItemForm> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-        ),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
@@ -375,108 +442,168 @@ class _EditItemFormState extends State<EditItemForm> {
   void dispose() {
     itemNameController.dispose();
     priceController.dispose();
+    itemIdController.dispose();
     super.dispose();
+  }
+
+  // Gives edit form fields a matching rounded style.
+  InputDecoration fieldDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE9DCD1)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE9DCD1)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: pizzaRed, width: 1.5),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: creamBackground,
       appBar: AppBar(
-        title: const Text('Edit Item'),
-        backgroundColor: Colors.orangeAccent,
+        title: const Text(
+          'Edit Item',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: pizzaRed,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              readOnly: true,
-              controller: TextEditingController(
-                text: widget.itemId,
+        padding: const EdgeInsets.all(18),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Card(
+              color: Colors.white,
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Item ID',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            DropdownButtonFormField<String>(
-              value: selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(),
-              ),
-              items: categories.map((category) {
-                return DropdownMenuItem<String>(
-                  value: category['id'],
-                  child: Text(
-                    '${category['id']} ${category['name']}',
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedCategory = value;
-                });
-              },
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: itemNameController,
-              decoration: const InputDecoration(
-                labelText: 'Item Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            DropdownButtonFormField<String>(
-              value: selectedSize,
-              decoration: const InputDecoration(
-                labelText: 'Size',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'Small',
-                  child: Text('Small'),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.edit_note,
+                      size: 42,
+                      color: pizzaRed,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Update Menu Item',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: darkText,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      readOnly: true,
+                      controller: itemIdController,
+                      decoration: fieldDecoration('Item ID'),
+                    ),
+                    const SizedBox(height: 15),
+                    DropdownButtonFormField<String>(
+                      value: categories.any(
+                        (category) => category['id'] == selectedCategory,
+                      )
+                          ? selectedCategory
+                          : null,
+                      decoration: fieldDecoration('Category'),
+                      items: categories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category['id'],
+                          child: Text(
+                            '${category['id']} ${category['name']}',
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCategory = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: itemNameController,
+                      decoration: fieldDecoration('Item Name'),
+                    ),
+                    const SizedBox(height: 15),
+                    DropdownButtonFormField<String>(
+                      value: const ['Small', 'Medium', 'Large', 'N/A']
+                              .contains(selectedSize)
+                          ? selectedSize
+                          : 'N/A',
+                      decoration: fieldDecoration('Size'),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Small',
+                          child: Text('Small'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Medium',
+                          child: Text('Medium'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Large',
+                          child: Text('Large'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'N/A',
+                          child: Text('N/A'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedSize = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: priceController,
+                      keyboardType: TextInputType.number,
+                      decoration: fieldDecoration('Price'),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: updateItem,
+                        icon: const Icon(Icons.save_outlined),
+                        label: const Text(
+                          'Update Item',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: pizzaRed,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                DropdownMenuItem(
-                  value: 'Medium',
-                  child: Text('Medium'),
-                ),
-                DropdownMenuItem(
-                  value: 'Large',
-                  child: Text('Large'),
-                ),
-                DropdownMenuItem(
-                  value: 'N/A',
-                  child: Text('N/A'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  selectedSize = value;
-                });
-              },
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: priceController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Price',
-                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 25),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: updateItem,
-                child: const Text('Update'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

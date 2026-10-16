@@ -1,9 +1,7 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'create_business.dart';
 import 'login_screen.dart';
 import 'categories.dart';
@@ -15,6 +13,12 @@ import 'sales_item.dart';
 import 'find_order.dart';
 import 'cancel_order.dart';
 
+// Shared palette for the restaurant POS screen.
+const Color pizzaRed = Color(0xFFD93636);
+const Color pizzaOrange = Color(0xFFFF8A3D);
+const Color creamBackground = Color(0xFFFFF8F1);
+const Color darkText = Color(0xFF292524);
+
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -24,9 +28,13 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   String businessName = '';
+
   String businessEmail = '';
+
   String businessPhone = '';
+
   String businessAddress = '';
+
   String businessImage = '';
 
   final TextEditingController searchController = TextEditingController();
@@ -34,22 +42,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   String searchText = '';
 
   // Category ID -> Category Name
+
   Map<String, String> categoryNames = {};
 
   @override
   void initState() {
     super.initState();
+
     loadBusiness();
+
     loadCategories();
   }
 
   @override
   void dispose() {
     searchController.dispose();
+
     super.dispose();
   }
 
   // Search only when Search icon is pressed or Enter is pressed.
+
   void searchItems() {
     final String text = searchController.text.trim().toLowerCase();
 
@@ -59,6 +72,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Load business data from Firebase
+
   Future<void> loadBusiness() async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -84,9 +98,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
       setState(() {
         businessName = data['businessName']?.toString() ?? '';
+
         businessEmail = data['email']?.toString() ?? '';
+
         businessPhone = data['phone']?.toString() ?? '';
+
         businessAddress = data['address']?.toString() ?? '';
+
         businessImage = data['imageUrl']?.toString() ?? '';
       });
     } catch (e) {
@@ -101,6 +119,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Load all category names once for quick search
+
   Future<void> loadCategories() async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -134,6 +153,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Get category name
+
   Future<String> getCategoryName(String categoryId) async {
     if (categoryId.isEmpty) {
       return categoryId;
@@ -176,6 +196,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Get category image
+
   Future<String> getCategoryImage(String categoryId) async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -206,6 +227,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Check whether an item matches the search
+
   bool itemMatchesSearch(Map<String, dynamic> data) {
     if (searchText.isEmpty) {
       return true;
@@ -226,6 +248,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Add selected item to cart
+
   Future<void> addToCart(Map<String, dynamic> data) async {
     final User? user = FirebaseAuth.instance.currentUser;
 
@@ -234,9 +257,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
 
     final String itemId = data['itemId']?.toString() ?? '';
+
     final String itemName = data['itemName']?.toString() ?? '';
+
     final String categoryId = data['categoryId']?.toString() ?? '';
+
     final String size = data['size']?.toString() ?? '';
+
     final String price = data['price']?.toString() ?? '';
 
     if (itemId.isEmpty) {
@@ -295,6 +322,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Show business profile image
+
   Widget showBusinessImage() {
     if (businessImage.isEmpty) {
       return const CircleAvatar(
@@ -343,6 +371,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Show category image
+
   Widget showCategoryImage(String image) {
     if (image.isEmpty) {
       return const Icon(
@@ -382,6 +411,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Get today's start and tomorrow's start
+
   DateTime getTodayStart() {
     final DateTime now = DateTime.now();
 
@@ -399,6 +429,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   // Calculate today's completed cash
+
   double calculateTodayCash(
     QuerySnapshot snapshot,
   ) {
@@ -437,7 +468,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         .snapshots();
 
     // Today's completed orders
+
     final todayStart = getTodayStart();
+
     final tomorrowStart = getTomorrowStart();
 
     final dailyCashStream = FirebaseFirestore.instance
@@ -456,10 +489,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.orangeAccent,
-        title: const Text('myPOS-Restaurant'),
+        backgroundColor: creamBackground,
+        foregroundColor: darkText,
+        elevation: 0,
+        title: const Text(
+          'myPOS-Restaurant',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           // Cart
+
           StreamBuilder<QuerySnapshot>(
             stream: cartStream,
             builder: (
@@ -501,7 +540,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: const BoxDecoration(
-                          color: Colors.red,
+                          color: pizzaRed,
                           shape: BoxShape.circle,
                         ),
                         child: Text(
@@ -521,6 +560,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         ],
       ),
       drawer: Drawer(
+        backgroundColor: creamBackground,
         width: MediaQuery.of(context).size.width * 0.60,
         child: ListView(
           children: [
@@ -790,6 +830,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           return Column(
             children: [
               // Daily Cash + Search
+
               StreamBuilder<QuerySnapshot>(
                 stream: dailyCashStream,
                 builder: (
@@ -815,30 +856,34 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // Daily Cash
+
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
+                            color: pizzaRed,
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Cash',
+                                'TODAY’S SALES',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  color: Colors.white70,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                               Text(
                                 'Rs. ${todayCash.toStringAsFixed(0)}',
                                 style: const TextStyle(
-                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -851,12 +896,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ),
 
                         // Search box
+
                         Expanded(
                           child: TextField(
                             controller: searchController,
+
                             textInputAction: TextInputAction.search,
+
                             decoration: InputDecoration(
                               hintText: 'Search item or category...',
+                              prefixIcon:
+                                  const Icon(Icons.search, color: pizzaRed),
                               suffixIcon: searchController.text.isNotEmpty
                                   ? IconButton(
                                       icon: const Icon(
@@ -883,17 +933,23 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 horizontal: 12,
                               ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade400,
-                                ),
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFE7DDD5)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                    color: pizzaRed, width: 1.5),
                               ),
                             ),
 
                             // Live search while typing
+
                             onChanged: (value) {
                               setState(() {
                                 searchText = value.trim().toLowerCase();
@@ -970,9 +1026,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       final String price = data['price']?.toString() ?? '';
 
                       return Card(
-                        elevation: 3,
+                        elevation: 2,
+                        shadowColor: pizzaRed.withOpacity(0.10),
+                        color: Colors.white,
+                        clipBehavior: Clip.antiAlias,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
+                          borderRadius: BorderRadius.circular(18),
+                          side: const BorderSide(color: Color(0xFFF0E4DC)),
                         ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(15),
@@ -986,7 +1046,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 child: Container(
                                   width: double.infinity,
                                   decoration: const BoxDecoration(
-                                    color: Colors.orangeAccent,
+                                    color: pizzaOrange,
                                     borderRadius: BorderRadius.only(
                                       topLeft: Radius.circular(15),
                                       topRight: Radius.circular(15),
@@ -1072,7 +1132,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                     Text(
                                       'Rs. $price',
                                       style: const TextStyle(
-                                        fontSize: 16,
+                                        color: pizzaRed,
+                                        fontSize: 17,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -1090,7 +1151,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           );
         },
       ),
-      backgroundColor: Colors.blueGrey,
+      backgroundColor: creamBackground,
     );
   }
 }

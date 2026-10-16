@@ -4,6 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'signup_screen.dart';
 import 'welcome_screen.dart';
 
+// Colors for the restaurant POS design.
+const Color pizzaRed = Color(0xFFD93636);
+const Color darkText = Color(0xFF292524);
+
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -80,52 +84,113 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Login',
-              style: TextStyle(fontSize: 28),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              // Runs the login function when the user presses Login.
-              onPressed: login,
-              child: const Text('Login'),
-            ),
-            const SizedBox(height: 10),
-            TextButton(
-              // Opens the signup screen for users who need to create an account.
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SignupScreen(),
+      // Allows the login form to scroll on smaller screens.
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Adds a small restaurant-themed icon above the login form.
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFE7DF),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.local_pizza_rounded,
+                      size: 44,
+                      color: pizzaRed,
+                    ),
                   ),
-                );
-              },
-              child: const Text(
-                'Don\'t have an account? Sign up',
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Welcome Back!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: darkText,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Sign in to your restaurant POS',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF78716C),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+
+                  // Groups the existing login fields and button in a simple card.
+                  Card(
+                    color: Colors.white,
+                    elevation: 1,
+                    shadowColor: Colors.black12,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: const BorderSide(
+                        color: Color(0xFFF0E4DB),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: usernameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Username',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: passwordController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: Icon(Icons.lock_outline),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              // Runs the original login function when pressed.
+                              onPressed: login,
+                              child: const Text('Login'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    // Opens the signup screen for users who need to create an account.
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SignupScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Don\'t have an account? Sign up',
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Colors for the restaurant POS design.
+const Color pizzaRed = Color(0xFFD93636);
+const Color darkText = Color(0xFF292524);
+
 class SignupScreen extends StatefulWidget {
   @override
   _SignupScreenState createState() => _SignupScreenState();
@@ -58,36 +62,85 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Sign Up')),
-      body: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(labelText: 'Email'),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Password',
+      // Keeps the existing app bar and applies the shared app theme.
+      appBar: AppBar(title: const Text('Sign Up')),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Card(
+                color: Colors.white,
+                elevation: 1,
+                shadowColor: Colors.black12,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: const BorderSide(
+                    color: Color(0xFFF0E4DB),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // Uses the same small restaurant icon as the login screen.
+                      const Icon(
+                        Icons.restaurant_menu_rounded,
+                        size: 42,
+                        color: pizzaRed,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Create Account',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          color: darkText,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      TextField(
+                        controller: usernameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Username',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          // Starts account creation and saves the user's details when pressed.
+                          onPressed: signup,
+                          child: const Text('Sign Up'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              // Starts account creation and saves the user's details when pressed.
-              onPressed: signup,
-              child: Text('Sign Up'),
-            ),
-          ],
+          ),
         ),
       ),
     );
