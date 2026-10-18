@@ -45,9 +45,47 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   Map<String, String> categoryNames = {};
 
+  // Keep Firebase streams in state so typing in search does not reconnect them.
+  Stream<QuerySnapshot>? cartStream;
+  Stream<QuerySnapshot>? dailyCashStream;
+  Stream<QuerySnapshot>? itemsStream;
+
   @override
   void initState() {
     super.initState();
+
+    // Prepare the streams once instead of creating them again on every rebuild.
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      cartStream = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('cart')
+          .snapshots();
+
+      itemsStream = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('items')
+          .snapshots();
+
+      // Keep the existing today's completed-orders date filter.
+      final todayStart = getTodayStart();
+      final tomorrowStart = getTomorrowStart();
+      dailyCashStream = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('orders')
+          .where(
+            'createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart),
+          )
+          .where(
+            'createdAt',
+            isLessThan: Timestamp.fromDate(tomorrowStart),
+          )
+          .snapshots();
+    }
 
     loadBusiness();
 
@@ -461,32 +499,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       );
     }
 
-    final cartStream = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('cart')
-        .snapshots();
-
-    // Today's completed orders
-
-    final todayStart = getTodayStart();
-
-    final tomorrowStart = getTomorrowStart();
-
-    final dailyCashStream = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('orders')
-        .where(
-          'createdAt',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart),
-        )
-        .where(
-          'createdAt',
-          isLessThan: Timestamp.fromDate(tomorrowStart),
-        )
-        .snapshots();
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: creamBackground,
@@ -784,11 +796,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('items')
-            .snapshots(),
+        stream: itemsStream,
         builder: (
           context,
           snapshot,
